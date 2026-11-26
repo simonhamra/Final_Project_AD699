@@ -30,7 +30,7 @@ candidate_cols = ["accommodates",
                   "bedrooms",
                   "beds",
                   "room_type",
-                  "neighbourhood_cleansed",]
+                  "neighbourhood_cleansed"]
 
 print("\nMissing values")
 print(df[candidate_cols].isna().sum())
@@ -40,13 +40,15 @@ from sklearn.model_selection import KFold, train_test_split
 
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 
-# Start with guest capacity and room type because both are easy to interpret and have no missing values in this dataset.
-model_df = df[["price", "accommodates", "room_type"]].copy()
+# Start with guest capacity and room type because both are easy to interpret and have no missing values.
+model_df = df[["price", 
+               "accommodates",
+               "room_type"]].copy()
 
 # Keep the highest-priced listing in the baseline data because we have no evidence that its listed price is a data-entry error.
 train_df, test_df = train_test_split(model_df,
                                      test_size=0.20,
-                                     random_state=42,)
+                                     random_state=42)
 
 # Check where the highest price landed so we can assess its effect on the fitted model or on the test errors.
 highest_price_index = model_df["price"].idxmax()
@@ -68,19 +70,19 @@ model_without_highest = smf.ols("price ~ accommodates + C(room_type)",
 comparison = []
 
 for label, fitted_model in [("Baseline", model),
-                            ("Without CHF 25,000 training listing", model_without_highest),]:
+                            ("Without CHF 25,000 training listing", model_without_highest)]:
     predictions = fitted_model.predict(test_df)
     comparison.append({"Model": label,
                        "Test MAE (CHF)": mean_absolute_error(test_df["price"], predictions),
                        "Test RMSE (CHF)": mean_squared_error(test_df["price"], predictions) ** 0.5,
-                       "Accommodates coefficient": fitted_model.params["accommodates"],})
+                       "Accommodates coefficient": fitted_model.params["accommodates"]})
 
 print("\nEffect of the highest-priced training listing")
 print(pd.DataFrame(comparison).round(2).to_string(index=False))
 
 # Fit the same predictors on log prices to reduce the influence of very large price differences while keeping all training listings.
 log_model = smf.ols("np.log(price) ~ accommodates + C(room_type)",
-                    data=train_df,).fit()
+                    data=train_df).fit()
 
 # Convert predictions back to CHF to compare errors on the same scale.
 log_predictions_chf = np.exp(log_model.predict(test_df))
@@ -89,7 +91,7 @@ comparison.append({"Model": "Log-price regression",
                    "Test MAE (CHF)": mean_absolute_error(test_df["price"], 
                                                          log_predictions_chf),
                    "Test RMSE (CHF)": mean_squared_error(test_df["price"], 
-                                                         log_predictions_chf) ** 0.5,})
+                                                         log_predictions_chf) ** 0.5})
 
 print("\nTest performance comparison")
 print(pd.DataFrame(comparison)[["Model", 
@@ -115,7 +117,7 @@ inner_suburbs = ["Carouge",
                  "Chêne-Bourg", 
                  "Chêne-Bougeries", 
                  "Thônex", 
-                 "Plan-les-Ouates",]
+                 "Plan-les-Ouates"]
 
 cv_df = train_df.copy()
 cv_df["area_group"] = "OUTER"
@@ -128,7 +130,7 @@ cv_df["area_group"] = cv_df["area_group"].astype("category")
 
 base_formula = "np.log(price) ~ accommodates + C(room_type)"
 formulas = {"Without area group": base_formula,
-            "With area group": base_formula + " + C(area_group)",}
+            "With area group": base_formula + " + C(area_group)"}
 
 # Compare both models on the same validation folds in CHF.
 cv = KFold(n_splits=5, shuffle=True, random_state=42)
@@ -145,7 +147,7 @@ for train_positions, val_positions in cv.split(cv_df):
                            "MAE (CHF)": mean_absolute_error(fold_val["price"], 
                                                             predictions_chf),
                            "RMSE (CHF)": mean_squared_error(fold_val["price"], 
-                                                            predictions_chf) ** 0.5,})
+                                                            predictions_chf) ** 0.5})
 
 print("\nAverage 5-fold validation errors")
 print(pd.DataFrame(cv_results).groupby("Model").mean().round(2))
