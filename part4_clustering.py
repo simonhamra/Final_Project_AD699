@@ -18,7 +18,7 @@ df["price"] = (df["price"]
                .str.replace(",", "", regex=False)
                .astype(float))
 
-# Check missing values and ranges before choosing and scaling features.
+# Check missing values and ranges.
 candidate_cols = ["accommodates", "bedrooms", "beds", "price"]
 print("Missing values in candidate features")
 print(df[candidate_cols].isna().sum())
@@ -81,7 +81,9 @@ axes[0].set_ylabel("")
 capacity_pct = pd.crosstab(cluster_df["accommodates"],
                            cluster_df["cluster_name"],
                            normalize="columns").reindex(columns=cluster_order) * 100
+
 capacity_pct.plot.bar(ax=axes[1], color=["#4477AA", "#228833"])
+
 axes[1].set_title("Guest capacity by cluster")
 axes[1].set_xlabel("Guests accommodated")
 axes[1].set_ylabel("Share within cluster (%)")
