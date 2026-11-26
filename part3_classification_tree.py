@@ -16,7 +16,7 @@ from sklearn.tree import plot_tree
 data_path = Path(__file__).with_name("geneva_listings.csv")
 df = pd.read_csv(data_path)
 
-# Check how common each response-time category is before deciding how to handle missing labels and split the data for classification.
+# Check how common each response-time category first.
 target = df["host_response_time"]
 
 print("Host response time counts")
@@ -26,12 +26,13 @@ print("\nMissing response times:", target.isna().sum())
 # Keep listings with an observed response time so the tree learns to distinguish among the four recorded response-time categories.
 target_col = "host_response_time"
 
-# Start with listing and host characteristics that could be available when making a prediction. Check their missing values before fitting.
+# Listing and host characteristics that could be available when making a prediction. 
+# And check their missing values before fitting.
 feature_cols = ["accommodates",
                 "room_type",
                 "number_of_reviews",
                 "host_is_superhost",
-                "host_listings_count",]
+                "host_listings_count"]
 
 tree_df = df.loc[df[target_col].notna(), feature_cols + [target_col]].copy()
 
@@ -57,20 +58,24 @@ X_train, X_test, y_train, y_test = train_test_split(X,
 # Encode the two categorical predictors within each training fold.
 preprocess = ColumnTransformer([("categories", 
                                  OneHotEncoder(handle_unknown="ignore"),
-                                 ["room_type", "host_is_superhost"]),],
-                               remainder="passthrough",)
+                                 ["room_type", 
+                                  "host_is_superhost"])],
+                               remainder="passthrough")
 
 tree_pipeline = Pipeline([("preprocess", 
                            preprocess),
                           ("tree", 
-                           DecisionTreeClassifier(random_state=42)),])
+                           DecisionTreeClassifier(random_state=42))])
 
-# Compare tree sizes on the training set only.
-cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+# Compare tree sizes on the training set.
+cv = StratifiedKFold(n_splits=5, 
+                     shuffle=True, 
+                     random_state=42)
+
 tree_search = GridSearchCV(tree_pipeline,
                            param_grid={"tree__max_depth": [1, 2, 3, 4, 5, 6, 8, 10, 12, 15, 20]},
                            scoring="balanced_accuracy",
-                           cv=cv,)
+                           cv=cv)
 
 tree_search.fit(X_train, y_train)
 
@@ -117,7 +122,7 @@ fitted_tree = final_tree.named_steps["tree"]
 print("\nActual tree depth:", fitted_tree.get_depth())
 print("Number of leaves:", fitted_tree.get_n_leaves())
 
-# Show the upper splits of the fitted tree.
+# Show the upper splits of the tree.
 feature_names = final_tree.named_steps["preprocess"].get_feature_names_out()
 
 fig, ax = plt.subplots(figsize=(18, 9))
